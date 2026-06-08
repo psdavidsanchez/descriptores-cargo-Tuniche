@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Descriptores de Cargo — Seguimiento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f3ef; --bg2: #eceae4; --bg3: #e2dfd8;
+    --ink: #1a1916; --ink2: #6b6860; --ink3: #a8a59e;
+    --border: #d4d1ca; --radius: 6px;
+    --pen-bg: #eceae4; --pen-ink: #6b6860;
+    --pro-bg: #ddeaf7; --pro-ink: #1a5fa8;
+    --rev-bg: #fdf2d9; --rev-ink: #8a5a00;
+    --fin-bg: #d8f0e0; --fin-ink: #1a6b3a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Syne', sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; }
+
+  header {
+    border-bottom: 2px solid var(--ink);
+    background: var(--bg);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-inner {
+    max-width: 1200px; margin: 0 auto; padding: 0 2rem;
+    display: flex; align-items: stretch;
+  }
+  .header-title {
+    padding: 1.2rem 2rem 1.2rem 0;
+    border-right: 1px solid var(--border); flex-shrink: 0;
+  }
+  .header-title h1 { font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+  .header-title p { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--ink3); margin-top: 2px; }
+  .header-stats { display: flex; flex: 1; align-items: stretch; }
+  .stat-pill {
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 1.2rem; border-right: 1px solid var(--border); cursor: default;
+  }
+  .stat-pill:last-child { border-right: none; }
+  .stat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .stat-pill .count { font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 500; line-height: 1; }
+  .stat-pill .label { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink2); }
+  .dot-pen { background: #b0ada6; } .dot-pro { background: #378ADD; }
+  .dot-rev { background: #d4960a; } .dot-fin { background: #2a9a52; }
+
+  .progress-wrap { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
+  .progress-track { height: 3px; background: var(--bg3); display: flex; overflow: hidden; }
+  .pb-seg { height: 100%; transition: width .4s; }
+  .pb-pen { background: #b0ada6; } .pb-pro { background: #378ADD; }
+  .pb-rev { background: #d4960a; } .pb-fin { background: #2a9a52; }
+
+  .toolbar {
+    max-width: 1200px; margin: 0 auto; padding: 1rem 2rem;
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+  }
+  .toolbar input[type="text"] {
+    font-family: 'DM Mono', monospace; font-size: 12px;
+    padding: 7px 12px; border: 1px solid var(--border); border-radius: var(--radius);
+    background: white; color: var(--ink); width: 210px; outline: none;
+  }
+  .toolbar input[type="text"]:focus { border-color: var(--ink); }
+  .filter-btn {
+    font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 500;
+    letter-spacing: .06em; text-transform: uppercase;
+    padding: 7px 12px; border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--bg); color: var(--ink2); cursor: pointer; transition: all .15s;
+  }
+  .filter-btn:hover { border-color: var(--ink); color: var(--ink); }
+  .filter-btn.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .toolbar-right { margin-left: auto; display: flex; gap: 8px; }
+  .icon-btn {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    padding: 7px 12px; border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--bg); color: var(--ink2); cursor: pointer; transition: all .15s;
+  }
+  .icon-btn:hover { border-color: var(--ink); color: var(--ink); }
+  .icon-btn.edit-mode { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+  main { max-width: 1200px; margin: 0 auto; padding: 1.5rem 2rem 4rem; display: flex; flex-direction: column; gap: 1rem; }
+
+  .planta-block { border: 1.5px solid var(--ink); border-radius: 8px; overflow: hidden; background: white; }
+  .planta-header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 20px; cursor: pointer;
+    background: var(--ink); color: var(--bg); user-select: none;
+  }
+  .planta-header:hover { background: #2d2b27; }
+  .planta-num { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--ink3); width: 20px; flex-shrink: 0; }
+  .planta-name-display { font-size: 13px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; flex: 1; color: var(--bg); }
+  .planta-prog-text { font-family: 'DM Mono', monospace; font-size: 11px; color: #a8a59e; margin-right: 8px; }
+  .planta-mini-bar { width: 80px; height: 4px; background: rgba(255,255,255,.15); border-radius: 2px; overflow: hidden; flex-shrink: 0; }
+  .planta-mini-fill { height: 100%; background: #2a9a52; border-radius: 2px; transition: width .4s; }
+  .chevron { font-size: 14px; color: var(--ink3); transition: transform .2s; flex-shrink: 0; }
+  .chevron.open { transform: rotate(180deg); }
+
+  .area-block { border-top: 1px solid var(--border); }
+  .area-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 20px 10px 36px; cursor: pointer;
+    background: var(--bg2); user-select: none;
+  }
+  .area-header:hover { background: var(--bg3); }
+  .area-name-wrap { flex: 1; display: flex; flex-direction: column; }
+  .area-name-display { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink2); }
+  .area-responsable { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--ink3); margin-top: 1px; }
+  .area-is-sub { padding-left: 52px; }
+  .area-is-sub .area-name-display { font-size: 10px; color: var(--ink3); }
+  .area-count { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--ink3); min-width: 36px; text-align: right; }
+  .area-chevron { font-size: 11px; color: var(--ink3); transition: transform .2s; }
+  .area-chevron.open { transform: rotate(180deg); }
+
+  .cargo-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 20px 9px 52px;
+    border-top: 1px solid var(--border); background: white; transition: background .1s;
+  }
+  .cargo-row:hover { background: #faf9f7; }
+  .cargo-row.hidden { display: none; }
+  .cargo-row.sub { padding-left: 72px; }
+  .cargo-index { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--ink3); min-width: 18px; flex-shrink: 0; }
+  .cargo-name-display { font-size: 13px; font-weight: 500; color: var(--ink); flex: 1; }
+
+  .status-badge {
+    font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 500;
+    letter-spacing: .05em; padding: 4px 10px; border-radius: 3px;
+    cursor: pointer; border: none; outline: none; white-space: nowrap;
+    flex-shrink: 0; -webkit-appearance: none; appearance: none;
+    background-repeat: no-repeat; background-position: right 8px center; padding-right: 24px;
+  }
+  .st-pendiente  { background: var(--pen-bg); color: var(--pen-ink); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b6860'/%3E%3C/svg%3E"); }
+  .st-proceso    { background: var(--pro-bg); color: var(--pro-ink); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%231a5fa8'/%3E%3C/svg%3E"); }
+  .st-revisado   { background: var(--rev-bg); color: var(--rev-ink); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a5a00'/%3E%3C/svg%3E"); }
+  .st-finalizado { background: var(--fin-bg); color: var(--fin-ink); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%231a6b3a'/%3E%3C/svg%3E"); }
+
+  .note-btn {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    padding: 4px 8px; border: 1px solid var(--border); border-radius: 3px;
+    background: var(--bg); color: var(--ink2); cursor: pointer; flex-shrink: 0;
+  }
+  .note-btn:hover { border-color: var(--ink); color: var(--ink); }
+  .note-btn.has-note { border-color: var(--ink2); }
+
+  .note-row { padding: 8px 20px 10px 72px; background: var(--bg2); border-top: 1px solid var(--border); display: none; }
+  .note-row.sub { padding-left: 90px; }
+  .note-row textarea {
+    width: 100%; font-family: 'DM Mono', monospace; font-size: 11px;
+    padding: 7px 10px; border: 1px solid var(--border); border-radius: 4px;
+    background: white; color: var(--ink); resize: none; outline: none; line-height: 1.6;
+  }
+  .note-row textarea:focus { border-color: var(--ink); }
+
+  /* ── EDIT MODE ── */
+  .edit-controls { display: none; align-items: center; gap: 6px; flex-shrink: 0; }
+  .edit-mode-on .edit-controls { display: flex; }
+  .edit-mode-on .note-btn { display: none; }
+
+  .inline-input {
+    font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 500;
+    color: var(--ink); background: white;
+    border: 1px solid var(--border); border-radius: 3px;
+    padding: 2px 6px; flex: 1; outline: none;
+    display: none;
+  }
+  .inline-input:focus { border-color: var(--ink); }
+  .edit-mode-on .cargo-name-display { display: none; }
+  .edit-mode-on .inline-input { display: block; }
+
+  .area-inline-input {
+    font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--ink2);
+    background: transparent; border: 1px solid var(--border); border-radius: 3px;
+    padding: 2px 6px; outline: none; display: none; width: 100%;
+  }
+  .area-inline-input:focus { border-color: var(--ink); background: white; }
+  .resp-inline-input {
+    font-family: 'DM Mono', monospace; font-size: 10px; color: var(--ink3);
+    background: transparent; border: 1px solid var(--border); border-radius: 3px;
+    padding: 2px 6px; outline: none; display: none; width: 100%;
+  }
+  .resp-inline-input:focus { border-color: var(--ink); background: white; }
+  .edit-mode-on .area-name-display { display: none; }
+  .edit-mode-on .area-responsable { display: none; }
+  .edit-mode-on .area-inline-input { display: block; }
+  .edit-mode-on .resp-inline-input { display: block; }
+  .edit-mode-on .area-header { cursor: default; }
+
+  .edit-btn-sm {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    padding: 3px 7px; border: 1px solid var(--border); border-radius: 3px;
+    background: var(--bg); color: var(--ink2); cursor: pointer; white-space: nowrap;
+  }
+  .edit-btn-sm:hover { border-color: var(--ink); color: var(--ink); }
+  .del-btn { color: #c0392b; border-color: #f5c6c2; }
+  .del-btn:hover { background: #fff0ee; border-color: #c0392b; }
+
+  .add-cargo-row {
+    display: none; padding: 6px 20px 6px 52px;
+    border-top: 1px solid var(--border); background: #faf9f7;
+    gap: 8px; align-items: center;
+  }
+  .add-cargo-row.sub { padding-left: 72px; }
+  .edit-mode-on .add-cargo-row { display: flex; }
+  .add-cargo-row input {
+    font-family: 'Syne', sans-serif; font-size: 12px;
+    padding: 5px 10px; border: 1px solid var(--border); border-radius: 3px;
+    background: white; color: var(--ink); flex: 1; outline: none;
+  }
+  .add-cargo-row input:focus { border-color: var(--ink); }
+  .add-cargo-row button {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    padding: 5px 12px; border: 1px solid var(--border); border-radius: 3px;
+    background: var(--ink); color: var(--bg); cursor: pointer;
+  }
+
+  .add-area-row {
+    display: none; padding: 8px 20px 8px 36px;
+    border-top: 1px solid var(--border); background: var(--bg2);
+    gap: 8px; align-items: center;
+  }
+  .edit-mode-on .add-area-row { display: flex; }
+  .add-area-row input {
+    font-family: 'Syne', sans-serif; font-size: 12px;
+    padding: 5px 10px; border: 1px solid var(--border); border-radius: 3px;
+    background: white; color: var(--ink); flex: 1; outline: none;
+  }
+  .add-area-row input:focus { border-color: var(--ink); }
+  .add-area-row button {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    padding: 5px 12px; border: 1px solid var(--border); border-radius: 3px;
+    background: var(--ink); color: var(--bg); cursor: pointer;
+  }
+
+  #toast {
+    position: fixed; bottom: 2rem; right: 2rem;
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    padding: 8px 16px; background: var(--ink); color: var(--bg);
+    border-radius: 4px; opacity: 0; transition: opacity .3s;
+    pointer-events: none; z-index: 999;
+  }
+  #toast.show { opacity: 1; }
+  .empty-msg {
+    text-align: center; padding: 3rem;
+    font-family: 'DM Mono', monospace; font-size: 12px; color: var(--ink3);
+    border: 1px dashed var(--border); border-radius: 8px; background: white;
+  }
+
+  @media (max-width: 640px) {
+    .header-inner { flex-direction: column; padding: 1rem; }
+    .stat-pill { padding: .5rem .8rem; }
+    main { padding: 1rem; }
+    .cargo-row, .area-header { padding-left: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-title">
+      <h1>Descriptores de Cargo</h1>
+      <p>Seguimiento de avance · 2 plantas</p>
+    </div>
+    <div class="header-stats">
+      <div class="stat-pill"><span class="stat-dot dot-pen"></span><div><div class="count" id="cnt-pen">0</div><div class="label">Pendiente</div></div></div>
+      <div class="stat-pill"><span class="stat-dot dot-pro"></span><div><div class="count" id="cnt-pro">0</div><div class="label">En proceso</div></div></div>
+      <div class="stat-pill"><span class="stat-dot dot-rev"></span><div><div class="count" id="cnt-rev">0</div><div class="label">Revisado</div></div></div>
+      <div class="stat-pill"><span class="stat-dot dot-fin"></span><div><div class="count" id="cnt-fin">0</div><div class="label">Finalizado</div></div></div>
+    </div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-track" id="progress-track"></div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <input type="text" id="search" placeholder="buscar cargo..." oninput="applyFilters()" />
+  <button class="filter-btn active" onclick="setFilter(this,'')">Todos</button>
+  <button class="filter-btn" onclick="setFilter(this,'pendiente')">Pendiente</button>
+  <button class="filter-btn" onclick="setFilter(this,'proceso')">En proceso</button>
+  <button class="filter-btn" onclick="setFilter(this,'revisado')">Revisado</button>
+  <button class="filter-btn" onclick="setFilter(this,'finalizado')">Finalizado</button>
+  <div class="toolbar-right">
+    <button class="icon-btn" id="expand-btn" onclick="toggleAll()">expandir todo</button>
+    <button class="icon-btn" id="edit-btn" onclick="toggleEditMode()">✎ editar</button>
+  </div>
+</div>
+
+<main id="main-container"></main>
+<div id="toast">✓ guardado</div>
+
+<script>
+// ─────────────────────────────────────────────────────────
+// DATOS
+// ─────────────────────────────────────────────────────────
+const STORAGE_KEY = "desc_cargo_v2";
+
+const DEFAULT_PLANTS = [
+  {
+    name: "Planta Graneros",
+    areas: [
+      {
+        name: "Gerencia", responsable: "Natalia Soza", isSub: false,
+        cargos: ["Gerente General","Director de Productores","Gerente de Operaciones","Gerente de Calidad y Post Cosecha","Gerente Comercial y Logística","Gerente Finanzas Corporativas","Gerente de Administración","Subgerente Gestión Personas","Subgerente Tecnología y Transformación digital","Subgerente de Operaciones"]
+      },
+      {
+        name: "Productores", responsable: "Rocío Rey", isSub: false,
+        cargos: ["Gerente Carozos","Jefe Zonal Sur","Agrónomo de Terreno","Asistente de Productores","Asistente de Administración","Asistente de Cosecha"]
+      },
+      {
+        name: "Calidad", responsable: "David Sánchez", isSub: false,
+        cargos: ["Jefe de Calidad","Supervisor de Calidad","Supervisor de Calidad y Post Cosecha","Supervisor Post Cosecha","Inspector de Calidad","Digitador"]
+      },
+      {
+        name: "Operaciones / Mantención", responsable: "David Sánchez", isSub: true,
+        cargos: ["Jefe de Mantención","Encargado de Mantención","Encargado de Servicios Generales","Técnico de Planificación","Asistente Técnico de Mantención","Electromecánico","Mecánico"]
+      },
+      {
+        name: "Operaciones / Recepción y Envase", responsable: "David Sánchez", isSub: true,
+        cargos: ["Jefe de Recepción y Envases","Encargado de Recepción y Envases","Supervisor de Recepción","Supervisor de Envases","Digitador","Camarero","Operador de Grúa","Operador Hidrocooler","Control Peso","Operario"]
+      },
+      {
+        name: "Operaciones / Packing", responsable: "David Sánchez", isSub: true,
+        cargos: ["Jefe de Packing Lider","Jefe de Packing","Secretaria Packing","Operador Calibrador","Supervisor de Packing","Encargado de Materiales","Encargado de PLU","Paletizador","Supervisor de Vaciado","Pesadora","Operario Packing"]
+      },
+      {
+        name: "Operaciones / Bodega", responsable: "David Sánchez", isSub: true,
+        cargos: ["Jefe de Bodega","Encargado de Bodega","Supervisor Administrativo","Supervisor de Bodega","Supervisor de Pañol","Asistente Altillo","Asistente Pañol","Asistente Recepción y Despacho","Asistente de Materiales","Operador de Grúa","Ayudante Administrativo","Ayudante Control inventario","Ayudante Control merma","Asistente Administrativo","Operario de Bodega","Operario de Altillo"]
+      },
+      {
+        name: "Operaciones / Inocuidad", responsable: "David Sánchez", isSub: true,
+        cargos: ["Jefe de SGC","Encargado de SGC","Supervisor de Inocuidad","Supervisor de Químicos y Rises","Ayudante BPM","Operario Aseo Baños","Operario Aseo CF","Operario de Aseo Técnico","Operario Control BPM"]
+      },
+      {
+        name: "Operaciones / Prevención de Riesgos", responsable: "David Sánchez", isSub: true,
+        cargos: ["Jefe de Prevención y Salud Ocupacional","Encargado de Brigada contra incendios","Asistente de Prevención y Salud Ocupacional","TENS"]
+      },
+      {
+        name: "Operaciones / Seguridad", responsable: "David Sánchez", isSub: true,
+        cargos: ["Jefe de Seguridad"]
+      },
+      {
+        name: "Operaciones / SAG", responsable: "David Sánchez", isSub: true,
+        cargos: ["Jefe Contraparte SAG","Contraparte Técnica","Ayudante de Contraparte Técnica"]
+      },
+      {
+        name: "Operaciones / Frigorífico", responsable: "David Sánchez", isSub: true,
+        cargos: ["Jefe de Frigorífico","Encargado de Frigorífico","Supervisor de Frigorífico","Supervisor de Repaletizaje","Supervisor de Cámara","Supervisor de Túneles","Supervisor de Aduana","Despachador Autorizado","Operador de Grúa Horquilla","Ayudante Despachador","Ayudante de Túneles","Ayudante de Cámara","Ayudante de Aduana","Operario"]
+      },
+      {
+        name: "Operaciones / SADEMA", responsable: "David Sánchez", isSub: true,
+        cargos: ["Jefe de SADEMA","Encargado de SADEMA","Operario SADEMA","Ayudante SADEMA"]
+      },
+      {
+        name: "Operaciones / Mercado Interno", responsable: "David Sánchez", isSub: true,
+        cargos: ["Encargado Mercado Interno","Supervisor de Turno","Operador de Grúa","Tarjador Comercial MI","Operario"]
+      },
+      {
+        name: "Operaciones / Operaciones", responsable: "David Sánchez", isSub: true,
+        cargos: ["Administrativa Recepcionista"]
+      },
+      {
+        name: "Comercial y Logística", responsable: "Rocío Rey", isSub: false,
+        cargos: ["Jefe de COMEX","Jefe de Embarques","Jefe de Adquisiciones","Controller Comercial","Key Account Manager","Market Manager","Coordinador de Embarques","Asistente Controller","Encargado de Adquisiciones","Encargado de Mercado Asia","Asistente de comercio exterior","Ayudante Administrativo","Supervisor de Compras","Conductor Adquisiciones"]
+      },
+      {
+        name: "Finanzas y Control de Gestión", responsable: "Rocío Rey", isSub: false,
+        cargos: ["Jefe de Control, Gestión y Proyectos","Analista Huertos","Analista Centrales Frutícolas"]
+      },
+      {
+        name: "Administración", responsable: "Rocío Rey", isSub: false,
+        cargos: ["Jefe de Remuneraciones","Encargado de Remuneraciones","Analista de Remuneraciones","Asistente de Remuneraciones","Analista Remuneraciones Keycloud","Jefe Administrativo y contabilidad","Tesorero Corporativo","Tesorero","Analista Contable","Asistente Contable"]
+      },
+      {
+        name: "Gestión Personas", responsable: "Rocío Rey", isSub: false,
+        cargos: ["Jefa de Reclutamiento y Selección","Asistente Gestión Social","Analista de Reclutamiento y Selección","Asistente de Reclutamiento"]
+      },
+      {
+        name: "Planificación", responsable: "Rocío Rey", isSub: false,
+        cargos: ["Jefe de Planificación","Jefa Controller y Alertas de gestión","Gestor de Planificación de Procesos"]
+      },
+      {
+        name: "Tecnología y Transformación Digital", responsable: "Rocío Rey", isSub: false,
+        cargos: ["Jefe Industrial TI","Jefe Desarrollo Digital","Jefe de Estadística e informática","Encargado Transformación Digital","Encargado de Informática","Encargado de Estadística","Supervisor de Informática","Supervisor de Estadística","Asistente de Informática","Asistente de Estadística","Digitador","Analista Desarrollo","Asistente Handpack"]
+      }
+    ]
+  },
+  {
+    name: "Planta Puquillay",
+    areas: [
+      {
+        name: "Calidad", responsable: "David Sánchez", isSub: false,
+        cargos: ["Jefe de Calidad","Supervisor de Calidad","Inspector de Calidad","Ayudante Post Cosecha","Digitador"]
+      },
+      {
+        name: "Operaciones", responsable: "David Sánchez", isSub: false,
+        cargos: ["Jefe de Planta","Jefe de Operaciones","Administrativa Recepcionista"]
+      },
+      {
+        name: "Operaciones / Contraparte SAG", responsable: "David Sánchez", isSub: true,
+        cargos: ["Jefe de Contraparte SAG","Contraparte Técnico","Despachador Autorizado","Ayudante Contraparte"]
+      },
+      {
+        name: "Operaciones / Frigorífico", responsable: "David Sánchez", isSub: true,
+        cargos: ["Jefe de Frigorífico","Encargado Frigorífico","Encargado de Túneles","Jefe de Turno","Supervisor de Frigorífico","Camarero Frigorífico","Tarjador Exportación Senior","Asistente Validador Aduana","Operador Grúa","Repaletizador","Ayudante Frigorífico","Operario"]
+      },
+      {
+        name: "Operaciones / Abastecimiento", responsable: "David Sánchez", isSub: true,
+        cargos: ["Jefe de Abastecimiento","Encargado de Bodega","Supervisor de Bodega","Supervisor de Altillo","Administrativo de Bodega","Asistente de Materiales","Asistente de Pañol","Asistente de Recepción y Despacho","Operador de Grúa","Ayudante de Bodega","Operario de Bodega"]
+      },
+      {
+        name: "Operaciones / Mantención", responsable: "David Sánchez", isSub: true,
+        cargos: ["Jefe de Mantención","Encargado Electromecánico","Encargado de Servicios Generales","Encargado SADEMA","Electromecánico","Operador SADEMA","Ayudante SADEMA"]
+      },
+      {
+        name: "Operaciones / Recepción, Envase y MI", responsable: "David Sánchez", isSub: true,
+        cargos: ["Jefe de Recepción, Envases y MI","Supervisor de Recepción, Envases y MI","Camarero","Digitador","Tarjador","Operador de Grúa Horquilla","Operario"]
+      },
+      {
+        name: "Operaciones / Packing", responsable: "David Sánchez", isSub: true,
+        cargos: ["Jefe de Packing Lider","Jefe de Packing","Secretaria Packing","Operador Calibrador","Operador Selector","Supervisor de Packing","Tarjador Comercial","Tarjador de Exportación","Operador Segregador","Paletizador","Enzunchador","Control de Peso","Operario Central Frutícola"]
+      },
+      {
+        name: "Operaciones / Inocuidad", responsable: "David Sánchez", isSub: true,
+        cargos: ["Jefe de Sistema de Gestión de Calidad e inocuidad","Supervisor de Inocuidad","Supervisor de Químico y Rises","Ayudante Aseo Senior","Ayudante Químico y Rises","Control BPM","Operador de Grúa Horquilla","Operario de Aseo Técnico CF","Operario de Aseo CF"]
+      },
+      {
+        name: "Operaciones / Prevención de Riesgo", responsable: "David Sánchez", isSub: true,
+        cargos: ["Jefe de Prevención y Salud Ocupacional","Encargado de Prevención","Asistente de Prevención","TENS"]
+      },
+      {
+        name: "Operaciones / Seguridad", responsable: "David Sánchez", isSub: true,
+        cargos: ["Jefe de Seguridad"]
+      }
+    ]
+  }
+];
+
+// ─────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────
+let PLANTS = [];
+let state  = {};
+let expanded = {};
+let filterStatus = "";
+let allExp = false;
+let editMode = false;
+
+function stateKey(pi, ai, ci) { return `${pi}__${ai}__${ci}`; }
+function getStatus(pi, ai, ci) { return (state[stateKey(pi,ai,ci)] || {}).status || "pendiente"; }
+function getNote(pi, ai, ci)   { return (state[stateKey(pi,ai,ci)] || {}).note   || ""; }
+
+function persist() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ plants: PLANTS, state }));
+  } catch(e){}
+  showToast();
+}
+
+function load() {
+  try {
+    const d = localStorage.getItem(STORAGE_KEY);
+    if (d) {
+      const p = JSON.parse(d);
+      if (p.plants) PLANTS = p.plants;
+      if (p.state)  state  = p.state;
+    } else {
+      PLANTS = JSON.parse(JSON.stringify(DEFAULT_PLANTS));
+    }
+  } catch(e) {
+    PLANTS = JSON.parse(JSON.stringify(DEFAULT_PLANTS));
+  }
+}
+
+let toastTimer;
+function showToast() {
+  const t = document.getElementById("toast");
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
+}
+
+// ─────────────────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────────────────
+const STATUS_ORDER  = ["pendiente","proceso","revisado","finalizado"];
+const STATUS_LABELS = { pendiente:"Pendiente", proceso:"En proceso", revisado:"Revisado", finalizado:"Finalizado" };
+
+function render() {
+  const container = document.getElementById("main-container");
+  container.innerHTML = "";
+  if (editMode) container.classList.add("edit-mode-on");
+  else          container.classList.remove("edit-mode-on");
+
+  const search = document.getElementById("search").value.toLowerCase();
+  let anyVisible = false;
+
+  PLANTS.forEach((plant, pi) => {
+    const pKey = "p" + pi;
+    const isOpen = expanded[pKey] !== false;
+
+    let pTotal = 0, pFin = 0;
+    plant.areas.forEach((area, ai) => area.cargos.forEach((_, ci) => {
+      pTotal++;
+      if (getStatus(pi, ai, ci) === "finalizado") pFin++;
+    }));
+    const pPct = pTotal ? Math.round(pFin / pTotal * 100) : 0;
+
+    const plantBlock = el("div", "planta-block");
+
+    const plantHdr = el("div", "planta-header");
+    plantHdr.innerHTML = `
+      <span class="planta-num">0${pi+1}</span>
+      <span class="planta-name-display">${plant.name}</span>
+      <span class="planta-prog-text">${pFin}/${pTotal}</span>
+      <div class="planta-mini-bar"><div class="planta-mini-fill" style="width:${pPct}%"></div></div>
+      <span class="chevron ${isOpen?'open':''}">▼</span>
+    `;
+    plantHdr.addEventListener("click", () => {
+      if (editMode) return;
+      expanded[pKey] = !isOpen;
+      render();
+    });
+    plantBlock.appendChild(plantHdr);
+
+    const plantContent = el("div");
+    plantContent.style.display = isOpen ? "block" : "none";
+
+    plant.areas.forEach((area, ai) => {
+      const aKey = pKey + "a" + ai;
+      const isAreaOpen = expanded[aKey] !== false;
+      const aTotal = area.cargos.length;
+      const aFin   = area.cargos.filter((_, ci) => getStatus(pi, ai, ci) === "finalizado").length;
+
+      const visible = area.cargos.filter((c, ci) => {
+        const match = !search || c.toLowerCase().includes(search);
+        const st = getStatus(pi, ai, ci);
+        return match && (!filterStatus || st === filterStatus);
+      });
+      if ((search || filterStatus) && visible.length === 0) return;
+
+      const areaBlock = el("div", "area-block");
+
+      const areaHdr = el("div", "area-header" + (area.isSub ? " area-is-sub" : ""));
+
+      const nameWrap = el("div", "area-name-wrap");
+      const nameDisp = el("span", "area-name-display");
+      nameDisp.textContent = area.name;
+      const respDisp = el("span", "area-responsable");
+      respDisp.textContent = "Responsable: " + area.responsable;
+
+      const nameInput = el("input", "area-inline-input");
+      nameInput.type = "text"; nameInput.value = area.name;
+      nameInput.addEventListener("click", e => e.stopPropagation());
+      nameInput.addEventListener("change", () => {
+        area.name = nameInput.value;
+        persist();
+      });
+
+      const respInput = el("input", "resp-inline-input");
+      respInput.type = "text"; respInput.value = area.responsable;
+      respInput.placeholder = "Responsable";
+      respInput.addEventListener("click", e => e.stopPropagation());
+      respInput.addEventListener("change", () => {
+        area.responsable = respInput.value;
+        persist();
+      });
+
+      nameWrap.append(nameDisp, respDisp, nameInput, respInput);
+
+      const areaCount = el("span", "area-count");
+      areaCount.textContent = aFin + "/" + aTotal;
+
+      const areaChev = el("span", "area-chevron " + (isAreaOpen ? "open" : ""));
+      areaChev.textContent = "▼";
+
+      const delAreaBtn = el("button", "edit-btn-sm del-btn");
+      delAreaBtn.textContent = "— área";
+      delAreaBtn.style.display = editMode ? "inline-block" : "none";
+      delAreaBtn.addEventListener("click", e => {
+        e.stopPropagation();
+        if (!confirm("¿Eliminar esta área y todos sus cargos?")) return;
+        plant.areas.splice(ai, 1);
+        persist(); render();
+      });
+
+      areaHdr.append(nameWrap, areaCount, delAreaBtn, areaChev);
+      areaHdr.addEventListener("click", () => {
+        if (editMode) return;
+        expanded[aKey] = !isAreaOpen;
+        render();
+      });
+      areaBlock.appendChild(areaHdr);
+
+      const areaContent = el("div");
+      areaContent.style.display = isAreaOpen ? "block" : "none";
+
+      area.cargos.forEach((cargo, ci) => {
+        const st = getStatus(pi, ai, ci);
+        const note = getNote(pi, ai, ci);
+        const matchSearch = !search || cargo.toLowerCase().includes(search);
+        const matchFilter = !filterStatus || st === filterStatus;
+        const isVisible = matchSearch && matchFilter;
+
+        const row = el("div", "cargo-row" + (area.isSub ? " sub" : "") + (!isVisible ? " hidden" : ""));
+
+        const idx = el("span", "cargo-index");
+        idx.textContent = String(ci + 1).padStart(2, "0");
+
+        const nameDisp2 = el("span", "cargo-name-display");
+        nameDisp2.textContent = cargo;
+
+        const nameInput2 = el("input", "inline-input");
+        nameInput2.type = "text"; nameInput2.value = cargo;
+        nameInput2.addEventListener("change", () => {
+          area.cargos[ci] = nameInput2.value;
+          persist();
+        });
+
+        const noteId = `note-${pi}-${ai}-${ci}`;
+        const sel = el("select", "status-badge st-" + st);
+        sel.innerHTML = STATUS_ORDER.map(s =>
+          `<option value="${s}" ${s===st?"selected":""}>${STATUS_LABELS[s]}</option>`
+        ).join("");
+        sel.addEventListener("change", function() {
+          const k = stateKey(pi, ai, ci);
+          if (!state[k]) state[k] = {};
+          state[k].status = this.value;
+          persist(); render();
+        });
+
+        const noteBtn = el("button", "note-btn" + (note ? " has-note" : ""));
+        noteBtn.textContent = note ? "✎ nota" : "+ nota";
+        noteBtn.addEventListener("click", () => {
+          const nr = document.getElementById(noteId);
+          if (nr) nr.style.display = nr.style.display === "block" ? "none" : "block";
+        });
+
+        const editCtrls = el("div", "edit-controls");
+        const delBtn = el("button", "edit-btn-sm del-btn");
+        delBtn.textContent = "✕";
+        delBtn.title = "Eliminar cargo";
+        delBtn.addEventListener("click", () => {
+          if (!confirm("¿Eliminar \"" + cargo + "\"?")) return;
+          area.cargos.splice(ci, 1);
+          const k = stateKey(pi, ai, ci);
+          delete state[k];
+          persist(); render();
+        });
+        editCtrls.appendChild(delBtn);
+
+        row.append(idx, nameDisp2, nameInput2, sel, noteBtn, editCtrls);
+        areaContent.appendChild(row);
+
+        const noteRow = el("div", "note-row" + (area.isSub ? " sub" : ""));
+        noteRow.id = noteId;
+        const ta = el("textarea");
+        ta.rows = 2; ta.placeholder = "Observación o comentario...";
+        ta.textContent = note;
+        ta.addEventListener("change", () => {
+          const k = stateKey(pi, ai, ci);
+          if (!state[k]) state[k] = {};
+          state[k].note = ta.value;
+          persist();
+        });
+        noteRow.appendChild(ta);
+        areaContent.appendChild(noteRow);
+
+        if (isVisible) anyVisible = true;
+      });
+
+      // ADD CARGO ROW
+      const addRow = el("div", "add-cargo-row" + (area.isSub ? " sub" : ""));
+      const addInput = el("input");
+      addInput.type = "text"; addInput.placeholder = "Nombre del nuevo cargo...";
+      const addBtn = el("button");
+      addBtn.textContent = "+ agregar";
+      addBtn.addEventListener("click", () => {
+        const v = addInput.value.trim();
+        if (!v) return;
+        area.cargos.push(v);
+        addInput.value = "";
+        persist(); render();
+      });
+      addRow.append(addInput, addBtn);
+      areaContent.appendChild(addRow);
+
+      areaBlock.appendChild(areaContent);
+      plantContent.appendChild(areaBlock);
+    });
+
+    // ADD AREA ROW
+    const addAreaRow = el("div", "add-area-row");
+    const addAreaNameInput = el("input");
+    addAreaNameInput.type = "text"; addAreaNameInput.placeholder = "Nombre del área...";
+    const addAreaRespInput = el("input");
+    addAreaRespInput.type = "text"; addAreaRespInput.placeholder = "Responsable...";
+    addAreaRespInput.style.maxWidth = "180px";
+    const addAreaBtn = el("button");
+    addAreaBtn.textContent = "+ área";
+    addAreaBtn.addEventListener("click", () => {
+      const n = addAreaNameInput.value.trim();
+      if (!n) return;
+      plant.areas.push({ name: n, responsable: addAreaRespInput.value.trim() || "—", isSub: false, cargos: [] });
+      addAreaNameInput.value = ""; addAreaRespInput.value = "";
+      persist(); render();
+    });
+    addAreaRow.append(addAreaNameInput, addAreaRespInput, addAreaBtn);
+    plantContent.appendChild(addAreaRow);
+
+    plantBlock.appendChild(plantContent);
+    container.appendChild(plantBlock);
+  });
+
+  if (!anyVisible && (search || filterStatus)) {
+    container.innerHTML = `<div class="empty-msg">No hay cargos que coincidan con el filtro actual.</div>`;
+  }
+
+  updateStats();
+  // reflect edit mode on del-area buttons (already set inline, but refresh)
+  document.querySelectorAll(".edit-btn-sm.del-btn").forEach(b => {
+    if (b.textContent === "— área") b.style.display = editMode ? "inline-block" : "none";
+  });
+}
+
+function el(tag, cls) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  return e;
+}
+
+function updateStats() {
+  const c = { pendiente:0, proceso:0, revisado:0, finalizado:0 };
+  let total = 0;
+  PLANTS.forEach((p, pi) => p.areas.forEach((a, ai) => a.cargos.forEach((_, ci) => {
+    c[getStatus(pi, ai, ci)]++;
+    total++;
+  })));
+  document.getElementById("cnt-pen").textContent = c.pendiente;
+  document.getElementById("cnt-pro").textContent = c.proceso;
+  document.getElementById("cnt-rev").textContent = c.revisado;
+  document.getElementById("cnt-fin").textContent = c.finalizado;
+  const track = document.getElementById("progress-track");
+  track.innerHTML = [
+    ["pen","pendiente"],["pro","proceso"],["rev","revisado"],["fin","finalizado"]
+  ].map(([k,s]) =>
+    `<div class="pb-seg pb-${k}" style="width:${total?(c[s]/total*100).toFixed(1):0}%"></div>`
+  ).join("");
+}
+
+function setFilter(btn, val) {
+  filterStatus = val;
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  render();
+}
+
+function applyFilters() { render(); }
+
+function toggleAll() {
+  allExp = !allExp;
+  PLANTS.forEach((p, pi) => {
+    expanded["p"+pi] = allExp;
+    p.areas.forEach((_, ai) => { expanded["p"+pi+"a"+ai] = allExp; });
+  });
+  document.getElementById("expand-btn").textContent = allExp ? "contraer todo" : "expandir todo";
+  render();
+}
+
+function toggleEditMode() {
+  editMode = !editMode;
+  const btn = document.getElementById("edit-btn");
+  btn.textContent = editMode ? "✓ listo" : "✎ editar";
+  btn.classList.toggle("edit-mode", editMode);
+  render();
+}
+
+load();
+render();
+</script>
+</body>
+</html>
